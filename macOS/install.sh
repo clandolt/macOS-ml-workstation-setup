@@ -66,16 +66,8 @@ log "INFO" "Installing Xcode Command Line Tools..."
 xcode-select --install
 
 # Install Homebrew
-if ! command -v brew &>/dev/null; then
-  log "INFO" "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE" 2>&1
-  if [[ $? -ne 0 ]]; then
-    log "ERROR" "Homebrew installation failed."
-    exit 1
-  fi
-else
-  log "INFO" "Homebrew already installed."
-fi
+log "  Installing brew ..."
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE"
 
 log "INFO" "Updating Homebrew..."
 brew update >> "$LOGFILE" 2>&1

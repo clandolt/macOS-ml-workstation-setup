@@ -157,8 +157,10 @@ brew install --cask \
   brave-browser \
   keepassxc \
   microsoft-office \
-  onedrive \
-  imagemagick >> "$LOGFILE" 2>&1
+  onedrive >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing Imagemagick..."
+brew install imagemagick >> "$LOGFILE" 2>&1
 
 # ---------------------------- #
 #    Shell Setup  #

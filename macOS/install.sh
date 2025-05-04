@@ -1,18 +1,27 @@
 #!/usr/bin/env zsh
 
 # macOS Developer Environment Setup Script
-# Version: 1.0.1
+# Version: 1.0.0
 
 # This script sets up a macOS machine with developer tools, preferred apps,
 # macOS settings, and shell enhancements.
 # Feel free to customize or fork.
+
+# Single-line invocation:
+# /bin/zsh -c "$(curl -fsSL https://raw.githubusercontent.com/clandolt/macOS-ml-workstation-setup/main/macOS/install.sh)"
 
 # ---------------------------- #
 #       Basic Utilities        #
 # ---------------------------- #
 
 log() {
-  echo "$1" | tee -a "$LOGFILE"
+  local log_level=$1
+  local message=$2
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  
+  # Output formatted log message
+  echo "$timestamp [$log_level] $message" | tee -a "$LOGFILE"
 }
 
 confirm() {
@@ -26,52 +35,65 @@ confirm() {
 
 VERSION=1.0.0
 LOGFILE=$(mktemp ~/install-$VERSION.log.XXXXXXXX) || exit 1
-PYTHON_VERSION=3.10.6
+
+PYTHON_VERSION=3.12.2
 JAVA_VERSION=17.0.2-open
 
-log "Setup workspace - macOS"
-log "  Version: $VERSION"
-log "  Logfile: $LOGFILE"
-log ""
+log "INFO" "Setup workspace - macOS"
+log "INFO" "  Version: $VERSION"
+log "INFO" "  Logfile: $LOGFILE"
+log "INFO" ""
 
 if ! confirm "Do you want to continue?"; then
-  log "User abort"
+  log "WARN" "User aborted setup."
   exit 1
 fi
-log ""
+log "INFO" ""
 
 # ---------------------------- #
 #     Developer Essentials     #
 # ---------------------------- #
 
-echo "Creating an SSH key..."
-ssh-keygen -t rsa
+# Prompt the user for their email address
+read -r "email?Please enter your GitHub email address: "
+log "INFO" "Creating an Ed25519 SSH key for GitHub user $email..."
+ssh-keygen -t ed25519 -C "$email"
 
-echo "Add this public key to GitHub:"
-echo "https://github.com/account/ssh"
+log "INFO" "Add this public key to GitHub: https://github.com/account/ssh"
 read -p "Press [Enter] once done..."
 
-echo "Installing Xcode Command Line Tools..."
+log "INFO" "Installing Xcode Command Line Tools..."
 xcode-select --install
 
 # Install Homebrew
 if ! command -v brew &>/dev/null; then
-  echo "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  log "INFO" "Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE" 2>&1
+  if [[ $? -ne 0 ]]; then
+    log "ERROR" "Homebrew installation failed."
+    exit 1
+  fi
+else
+  log "INFO" "Homebrew already installed."
 fi
 
-echo "Updating Homebrew..."
-brew update
+log "INFO" "Updating Homebrew..."
+brew update >> "$LOGFILE" 2>&1
 
 # Install CLI tools
-brew install git
-brew install wget
-brew install tree
-brew install python
-brew install imagemagick
-brew install ghostscript
-brew install --cask brave-browser
-brew tap heroku/brew && brew install heroku
+log "INFO" "Installing command-line tools..."
+
+log "INFO" "  Installing git..."
+brew install git >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing wget..."
+brew install wget >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing tree..."
+brew install tree >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing ghostscript..."
+brew install ghostscript >> "$LOGFILE" 2>&1
 
 # ---------------------------- #
 #        Git Configuration     #
@@ -83,30 +105,55 @@ read -r GITHUB_USERNAME
 echo "Please enter your GitHub email:"
 read -r GITHUB_EMAIL
 
-# Configure Git with user input
+log "INFO" "Configuring Git with username: $GITHUB_USERNAME, email: $GITHUB_EMAIL..."
 git config --global user.name "$GITHUB_USERNAME"
 git config --global user.email "$GITHUB_EMAIL"
 
-brew install git-extras legit git-flow
+log "INFO" "Installing git-extras, legit, and git-flow..."
+brew install git-extras legit git-flow >> "$LOGFILE" 2>&1
 
 # ---------------------------- #
 #      Programming Tools       #
 # ---------------------------- #
 
-brew install pyenv
-git clone https://github.com/pyenv/pyenv-update.git ~/.pyenv/plugins/pyenv-update
-pyenv install -s "$PYTHON_VERSION"
+log "INFO" "Installing programming tools..."
 
-curl -s "https://get.sdkman.io" | bash
+log "INFO" "  Installing pyenv..."
+brew install pyenv >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing pyenv-update..."
+git clone https://github.com/pyenv/pyenv-update.git "$HOME/.pyenv/plugins/pyenv-update" >> "$LOGFILE" 2>&1
+if [[ $? -ne 0 ]]; then
+  log "ERROR" "Failed to install pyenv-update."
+  exit 1
+fi
+
+log "INFO" "  Installing Python $PYTHON_VERSION..."
+pyenv install -s "$PYTHON_VERSION" >> "$LOGFILE" 2>&1
+
+log "INFO" "Installing JDK & JVM tools..."
+
+log "INFO" "  Installing sdkman..."
+curl -s "https://get.sdkman.io" | bash >> "$LOGFILE" 2>&1
 source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk install java "$JAVA_VERSION"
-sdk install kotlin
-sdk install maven
-sdk install gradle
+
+log "INFO" "  Installing Java $JAVA_VERSION..."
+sdk install java "$JAVA_VERSION" >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing Kotlin..."
+sdk install kotlin >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing Maven..."
+sdk install maven >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing Gradle..."
+sdk install gradle >> "$LOGFILE" 2>&1
 
 # ---------------------------- #
 #        Applications          #
 # ---------------------------- #
+
+log "INFO" "Installing applications..."
 
 brew install --cask \
   jetbrains-toolbox \
@@ -115,32 +162,33 @@ brew install --cask \
   docker \
   google-chrome \
   grammarly-desktop \
-  1password \
-  1password-cli \
-  brave-browser
+  brave-browser \
+  keepassxc \
+  microsoft-office \
+  onedrive \
+  imagemagick >> "$LOGFILE" 2>&1
 
 # ---------------------------- #
-#    Shell and Dotfiles Setup  #
+#    Shell Setup  #
 # ---------------------------- #
 
-curl -L http://install.ohmyz.sh | sh
+log "INFO" "Installing Oh My Zsh..."
+curl -L http://install.ohmyz.sh | sh >> "$LOGFILE" 2>&1
+log "INFO" "Cloning Zsh plugins..."
 cd ~/.oh-my-zsh/custom/plugins
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git >> "$LOGFILE" 2>&1
+git clone https://github.com/zsh-users/zsh-autosuggestions.git >> "$LOGFILE" 2>&1
+
+log "INFO" "Changing shell to Zsh..."
 chsh -s /bin/zsh
-
-cd ~
-git clone git@github.com:bradp/dotfiles.git .dotfiles
-cd .dotfiles && sh symdotfiles
-
-npm install -g grunt-cli
 
 # ---------------------------- #
 #     System Preferences       #
 # ---------------------------- #
 
-echo "Applying macOS system defaults..."
+log "INFO" "Applying macOS system defaults..."
 
-# General
+# General settings
 defaults write NSGlobalDomain NSQuitAlwaysKeepsWindows -bool false
 defaults write NSGlobalDomain NSDisableAutomaticTermination -bool true
 defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
@@ -153,15 +201,14 @@ defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
 defaults write NSGlobalDomain PMPrintingExpandedStateForPrint -bool true
 defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
 
-# Finder
+# Finder settings
 defaults write com.apple.finder QLEnableTextSelection -bool true
 defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
-defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
 defaults write com.apple.finder FXPreferredViewStyle Clmv
 defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
 defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 
-# Dock
+# Dock settings
 defaults write com.apple.dock tilesize -int 36
 defaults write com.apple.dock expose-animation-duration -float 0.1
 defaults write com.apple.dock expose-group-by-app -bool true
@@ -170,44 +217,26 @@ defaults write com.apple.dock autohide-delay -float 0
 defaults write com.apple.dock autohide-time-modifier -float 0
 defaults write com.apple.dock mru-spaces -bool false
 
-# Terminal
+# Terminal settings
 defaults write com.apple.terminal StringEncodings -array 4
 defaults write com.apple.Terminal "Default Window Settings" -string "Pro"
 defaults write com.apple.Terminal "Startup Window Settings" -string "Pro"
 
-# Safari
+# Safari settings
 defaults write com.apple.Safari IncludeDevelopMenu -bool true
-defaults write com.apple.Safari ShowFavoritesBar -bool false
 defaults write com.apple.Safari IncludeInternalDebugMenu -bool true
-defaults write com.apple.Safari ProxiesInBookmarksBar "()"
 
-# Transmission
+# Transmission settings
 defaults write org.m0k.transmission UseIncompleteDownloadFolder -bool true
 defaults write org.m0k.transmission IncompleteDownloadFolder -string "${HOME}/Downloads/Incomplete"
-defaults write org.m0k.transmission DownloadAsk -bool false
 defaults write org.m0k.transmission DeleteOriginalTorrent -bool true
-defaults write org.m0k.transmission WarningDonate -bool false
-defaults write org.m0k.transmission WarningLegal -bool false
 
-# Screenshot
+# Screenshot settings
 defaults write com.apple.screencapture location -string "$HOME/Desktop"
 defaults write com.apple.screencapture type -string "png"
 
-# Trackpad & Mouse
-defaults write -g com.apple.trackpad.scaling 2
-defaults write -g com.apple.mouse.scaling 2.5
-
-# Gatekeeper
-sudo spctl --master-disable
-sudo defaults write /var/db/SystemPolicy-prefs.plist enabled -string no
-defaults write com.apple.LaunchServices LSQuarantine -bool false
-
 # Prevent Time Machine prompts
 defaults write com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true
-
-# SSD optimizations
-sudo pmset -a sms 0
-sudo pmset -a standbydelay 86400
 
 # Reload Finder and Dock
 killall Finder
@@ -217,5 +246,5 @@ killall Dock
 #          Complete            #
 # ---------------------------- #
 
-log "Setup complete 🎉"
-log "Please reboot to ensure all system settings take effect."
+log "INFO" "Setup complete 🎉"
+log "INFO" "Please reboot to ensure all system settings take effect."

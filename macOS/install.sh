@@ -157,6 +157,7 @@ brew install --cask \
   brave-browser \
   keepassxc \
   microsoft-office \
+  drawio \
   onedrive >> "$LOGFILE" 2>&1
 
 log "INFO" "  Installing Imagemagick..."

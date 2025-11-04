@@ -87,6 +87,16 @@ brew install tree >> "$LOGFILE" 2>&1
 log "INFO" "  Installing ghostscript..."
 brew install ghostscript >> "$LOGFILE" 2>&1
 
+# Additional essential developer tools
+log "INFO" "  Installing cmake..."
+brew install cmake >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing ninja build system..."
+brew install ninja >> "$LOGFILE" 2>&1
+
+log "INFO" "  Installing llvm@20 compiler..."
+brew install llvm@20 >> "$LOGFILE" 2>&1
+
 # ---------------------------- #
 #        Git Configuration     #
 # ---------------------------- #

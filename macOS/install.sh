@@ -33,7 +33,7 @@ confirm() {
   esac
 }
 
-VERSION=1.0.0
+VERSION=1.0.2
 LOGFILE=$(mktemp ~/install-$VERSION.log.XXXXXXXX) || exit 1
 
 PYTHON_VERSION=3.12.2
@@ -168,7 +168,9 @@ brew install --cask \
   keepassxc \
   microsoft-office \
   drawio \
-  onedrive >> "$LOGFILE" 2>&1
+  onedrive \
+  discord \
+  slack >> "$LOGFILE" 2>&1
 
 log "INFO" "  Installing Imagemagick..."
 brew install imagemagick >> "$LOGFILE" 2>&1
